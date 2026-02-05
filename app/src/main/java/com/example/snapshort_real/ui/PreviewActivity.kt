@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -61,18 +62,20 @@ class PreviewActivity : ComponentActivity() {
         }
         val imageUri = Uri.parse(imageUriString)
 
+        val editLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            finish()
+        }
+
         setContent {
             Snapshort_realTheme {
                 PreviewScreen(
                     imageUri = imageUri,
                     onDismiss = { finish() },
                     onEdit = {
-                        // TODO: Implement Edit Activity launch
-                         // val editIntent = Intent(this, EditScreenshotActivity::class.java).apply {
-                         //    putExtra("IMAGE_URI", imageUriString)
-                         // }
-                         // startActivity(editIntent)
-                        finish()
+                        val editIntent = android.content.Intent(this@PreviewActivity, com.example.snapshort_real.ui.edit.EditScreenshotActivity::class.java).apply {
+                           putExtra("IMAGE_URI", imageUriString)
+                        }
+                        editLauncher.launch(editIntent)
                     }
                 )
             }

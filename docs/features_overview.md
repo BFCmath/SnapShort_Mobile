@@ -25,7 +25,7 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Auto-Dismiss**: Disappears automatically after 2.5 seconds of inactivity.
     - **Swipe Left**: Manually dismisses the preview.
     - **Elastic Drag**: "Rubber-banding" effect when dragging right (indicating no action).
-    - **Tap**: Currently configured to trigger an "Edit" action (see Missing Features).
+    - **Tap**: Triggers the **Edit & Crop** workflow (`EditScreenshotActivity`).
 
 #### 3. Gallery & Management
 - **UI**: Grid view of all captured screenshots (`GalleryScreen`).
@@ -39,6 +39,16 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
 - **Interaction**:
     - **Delete**: Remove the image permanently via the trash icon.
     - **Back**: Return to the gallery.
+
+#### 5. Image Editing & Cropping
+- **UI**: Full-screen editor with zoom and pan capabilities.
+- **Cropping**:
+    - **Interaction**: Drag standard "L-shaped" handles at the corners to define a crop area.
+    - **Visual Feedback**: The area outside the selection is dimmed for focus.
+- **Workflow**:
+    - **Save**: Crops and replaces the original image (or saves to cache if file access is restricted).
+    - **Delete**: Quick access to discard the image immediately.
+    - **Reset**: A contextual "Close" button to remove the crop rectangle and start over.
 
 ---
 

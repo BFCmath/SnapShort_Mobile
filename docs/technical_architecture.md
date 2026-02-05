@@ -42,7 +42,15 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
         - Uses `Animatable` offset for slide-in/out effects.
         - Timer-based auto-dismiss (2.5s).
     - **Navigation**:
-        - Explicit intent to `EditScreenshotActivity` (Currently TODO).
+        - Launches `EditScreenshotActivity` via `ActivityResultLauncher`.
+
+- **`EditScreenshotActivity` / `EditScreenshotScreen`**
+    - **Role**: Dedicated screen for modifying the captured image.
+    - **Features**:
+        - **Zoom/Pan**: Handled via `pointerInput` and `graphicsLayer` transformations.
+        - **Cropping Logic**: Custom implementation using `Canvas` for the overlay and `Bitmap.createBitmap` for the final operation.
+        - **Dimmed Overlay**: Uses `Path.combine` with `PathOperation.Difference` to dim non-selected areas.
+    - **Data Flow**: Receives `IMAGE_URI` via intent, saves changes back to the same URI or a new cache file.
 
 - **`MainActivity`**
     - **Role**: Single Activity entry point.
@@ -84,5 +92,5 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
 ## Current Limitations / TODOs
 
 1.  **Delay Reliability**: The 450ms delay for shade dismissal is hardcoded and may be flaky on some devices.
-2.  **Missing Edit Flow**: The link between Preview and Edit is broken.
+
 

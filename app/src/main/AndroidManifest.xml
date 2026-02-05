@@ -56,6 +56,11 @@
             android:launchMode="singleTask"
             android:taskAffinity="" />
 
+        <activity
+            android:name=".ui.edit.EditScreenshotActivity"
+            android:theme="@style/Theme.Snapshort_real"
+            android:exported="false" />
+
     </application>
 
 </manifest>
