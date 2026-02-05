@@ -3,14 +3,24 @@ package com.example.snapshort_real.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.FileObserver
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-class ScreenshotRepository(private val context: Context) {
+class ScreenshotRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     
     companion object {
         private const val TAG = "ScreenshotRepository"
@@ -23,12 +33,23 @@ class ScreenshotRepository(private val context: Context) {
         }
     }
     
-    fun getScreenshots(): List<File> {
-        return screenshotsDir.listFiles()
-            ?.filter { it.extension in listOf("png", "jpg", "jpeg") }
-            ?.sortedByDescending { it.lastModified() }
-            ?: emptyList()
-    }
+    fun getScreenshots(): List<File> = listScreenshots()
+
+    fun observeScreenshots(): Flow<List<File>> = callbackFlow {
+        trySend(listScreenshots())
+
+        val observer = object : FileObserver(
+            screenshotsDir.absolutePath,
+            CREATE or DELETE or MOVED_TO or MOVED_FROM or CLOSE_WRITE
+        ) {
+            override fun onEvent(event: Int, path: String?) {
+                trySend(listScreenshots())
+            }
+        }
+
+        observer.startWatching()
+        awaitClose { observer.stopWatching() }
+    }.distinctUntilChanged().flowOn(Dispatchers.IO)
     
     fun copyScreenshotToInternal(sourceFile: File): Boolean {
         return try {
@@ -83,5 +104,12 @@ class ScreenshotRepository(private val context: Context) {
     
     fun deleteAllScreenshots() {
         screenshotsDir.listFiles()?.forEach { it.delete() }
+    }
+
+    private fun listScreenshots(): List<File> {
+        return screenshotsDir.listFiles()
+            ?.filter { it.isFile && it.extension in listOf("png", "jpg", "jpeg") }
+            ?.sortedByDescending { it.lastModified() }
+            ?: emptyList()
     }
 }

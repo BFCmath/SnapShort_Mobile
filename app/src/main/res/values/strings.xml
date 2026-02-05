@@ -3,4 +3,8 @@
     <string name="accessibility_service_description">Snapshort uses this service to capture screenshots at your request. We do not collect or transmit any data.</string>
     <string name="tile_label">SNAPSHOT2</string>
     <string name="accessibility_service_label">SNAPSHOT2</string>
+    <string name="gallery_title">Snapshot Gallery</string>
+    <string name="gallery_empty_title">No snapshots yet</string>
+    <string name="gallery_empty_subtitle">Capture a screenshot to see it here.</string>
+    <string name="gallery_delete">Delete snapshot</string>
 </resources>

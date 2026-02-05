@@ -1,5 +1,15 @@
 # Technical Architecture
 
+## Architecture Overview
+The application follows modern Android development practices, utilizing **MVVM (Model-View-ViewModel)** architecture and **Hilt** for dependency injection.
+
+### Core Technologies
+- **Language**: Kotlin
+- **UI Toolkit**: Jetpack Compose
+- **Dependency Injection**: Hilt
+- **Navigation**: Jetpack Navigation Compose
+- **Async Processing**: Kotlin Coroutines & Flow
+
 ## Core Components Structure
 
 ### 1. Service Layer (Capture)
@@ -35,13 +45,29 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
         - Explicit intent to `EditScreenshotActivity` (Currently TODO).
 
 - **`MainActivity`**
-    - **Role**: Application Dashboard / Gallery.
-    - **Current State**: Scaffold with "Hello World" (Implementation Pending).
+    - **Role**: Single Activity entry point.
+    - **Implementation**: Hosts the `NavHost` for determining which screen to show.
+    - **Navigation Graph**:
+        - `gallery` -> Shows `GalleryScreen`.
+        - `detail/{imagePath}` -> Shows `DetailScreen`.
+
+- **`GalleryScreen`**
+    - **Role**: Displays a grid of captured screenshots.
+    - **ViewModel**: `GalleryViewModel`
+        - Exposes `GalleryUiState` (Loading, Success, Empty).
+        - Observes file changes from the repository.
+
+- **`DetailScreen`**
+    - **Role**: Full-screen image viewer with deletion capability.
+    - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
 
 ### 3. Data Layer
 
 - **`ScreenshotRepository`**
-    - **Role**: Handles file I/O operations for saving bitmap data to local storage.
+    - **Role**: Single source of truth for screenshot data.
+    - **Key Mechanism**:
+        - Uses `FileObserver` to watch the internal `screenshots/` directory for externally created files (from the Service).
+        - Exposes a `Flow<List<File>>` to the ViewModel, ensuring the UI auto-updates when a new screenshot is captured by the service.
 
 ## Key Technical Decisions
 
@@ -58,5 +84,5 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
 ## Current Limitations / TODOs
 
 1.  **Delay Reliability**: The 450ms delay for shade dismissal is hardcoded and may be flaky on some devices.
-2.  **Missing Edit Flow**: The link between Preview and Edit is broken (`TODO` in `PreviewActivity`).
-3.  **App Shell**: The main app interface content is missing.
+2.  **Missing Edit Flow**: The link between Preview and Edit is broken.
+

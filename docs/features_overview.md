@@ -2,9 +2,9 @@
 
 ## Current Implementation Status
 **As of:** 2026-02-06
-**App State:** Early Refactoring / MVP
+**App State:** Core Features Implemented
 
-The application currently supports the core **Capture** and **Preview** workflows, but lacks the **Gallery** and **Editing** capabilities described in design documents.
+The application currently supports the **Capture**, **Preview**, **Gallery**, and **Detail View** workflows. Basic file management (delete) is also implemented.
 
 ### ✅ Implemented Features
 
@@ -27,21 +27,18 @@ The application currently supports the core **Capture** and **Preview** workflow
     - **Elastic Drag**: "Rubber-banding" effect when dragging right (indicating no action).
     - **Tap**: Currently configured to trigger an "Edit" action (see Missing Features).
 
+#### 3. Gallery & Management
+- **UI**: Grid view of all captured screenshots (`GalleryScreen`).
+- **Data Source**: Real-time observation of the app's internal storage `screenshots/` directory using `FileObserver` in `ScreenshotRepository`.
+- **Interaction**:
+    - **View**: Tap a thumbnail to open the Detail View.
+    - **Navigation**: Uses Jetpack Navigation Compose.
+
+#### 4. Detail View
+- **UI**: Full-screen image viewer (`DetailScreen`) with a black background.
+- **Interaction**:
+    - **Delete**: Remove the image permanently via the trash icon.
+    - **Back**: Return to the gallery.
+
 ---
 
-### ❌ Missing / Not Yet Implemented
-*These features are described in documentation but are not present in the current codebase.*
-
-#### 1. Image Editor (`EditScreenshotActivity`)
-- **Status**: The `PreviewActivity` has a placeholder `TODO` for launching this activity.
-- **Missing**: No cropping UI, no task metadata entry (name, due date), no save/delete logic.
-
-#### 2. Gallery / Snaps Tab (`MainActivity`)
-- **Status**: The `MainActivity` currently displays a default "Hello Android!" scaffold.
-- **Missing**:
-    - Grid view of captured snapshots.
-    - Filtering logic (Snap vs. Task).
-    - Multi-select and delete functionality.
-
-#### 3. Task Management Integration
-- No database or logic to convert snapshots into tasks is currently implemented.
