@@ -31,6 +31,7 @@ import com.example.snapshort_real.ui.gallery.GalleryScreen
 import com.example.snapshort_real.ui.tasks.TasksScreen
 import com.example.snapshort_real.ui.theme.Snapshort_realTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -91,9 +92,12 @@ fun MainScreen() {
         ) {
             composable("gallery") {
                 GalleryScreen(
-                    onImageClick = { file ->
+                    onImageClick = { file, allFiles, index ->
                         val encodedPath = URLEncoder.encode(file.absolutePath, StandardCharsets.UTF_8.toString())
-                        navController.navigate("task_detail?imagePath=$encodedPath")
+                        val encodedAllPaths = allFiles.joinToString(",") { 
+                            URLEncoder.encode(it.absolutePath, StandardCharsets.UTF_8.toString()) 
+                        }
+                        navController.navigate("task_detail?imagePath=$encodedPath&allPaths=$encodedAllPaths&index=$index")
                     }
                 )
             }
@@ -107,7 +111,7 @@ fun MainScreen() {
             }
             
             composable(
-                route = "task_detail?taskId={taskId}&imagePath={imagePath}",
+                route = "task_detail?taskId={taskId}&imagePath={imagePath}&allPaths={allPaths}&index={index}",
                 arguments = listOf(
                     navArgument("taskId") { 
                         type = NavType.LongType 
@@ -116,15 +120,32 @@ fun MainScreen() {
                     navArgument("imagePath") { 
                         type = NavType.StringType 
                         nullable = true
+                    },
+                    navArgument("allPaths") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("index") {
+                        type = NavType.IntType
+                        defaultValue = 0
                     }
                 )
             ) { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getLong("taskId")
                 val imagePath = backStackEntry.arguments?.getString("imagePath")
+                val allPathsEncoded = backStackEntry.arguments?.getString("allPaths")
+                val index = backStackEntry.arguments?.getInt("index") ?: 0
+                
+                val allImagePaths = allPathsEncoded?.split(",")?.map {
+                    URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
+                } ?: emptyList()
                 
                 TaskDetailScreen(
                     taskId = taskId,
                     imagePath = imagePath,
+                    allImagePaths = allImagePaths,
+                    initialIndex = index,
                     onBack = { navController.popBackStack() }
                 )
             }

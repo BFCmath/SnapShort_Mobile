@@ -2,8 +2,13 @@ package com.example.snapshort_real.ui.detail
 
 import android.app.DatePickerDialog
 import android.widget.DatePicker
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -40,35 +46,60 @@ import com.example.snapshort_real.ui.tasks.TaskViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskDetailScreen(
     taskId: Long? = null,
     imagePath: String? = null,
+    allImagePaths: List<String> = emptyList(),
+    initialIndex: Int = 0,
     onBack: () -> Unit,
+    onNavigateToImage: ((String) -> Unit)? = null,
     viewModel: TaskViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val currentTask by viewModel.currentTask.collectAsState()
+    
+    // Current image index for navigation
+    var currentIndex by remember { mutableStateOf(initialIndex) }
     
     // Local state for editing to avoid constant DB updates
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf<Long?>(null) }
     var viewedImagePath by remember { mutableStateOf<String?>(null) }
+    
+    // FocusRequester for swipe up to focus title
+    val titleFocusRequester = remember { FocusRequester() }
+    val descriptionFocusRequester = remember { FocusRequester() }
+    
+    // Swipe gesture state
+    var dragOffsetX by remember { mutableFloatStateOf(0f) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    
+    // Track swipe direction for correct animation (true = forward/next, false = backward/previous)
+    var isSwipingForward by remember { mutableStateOf(true) }
+
+    // Determine current image path based on navigation
+    val effectiveImagePath = if (allImagePaths.isNotEmpty() && currentIndex in allImagePaths.indices) {
+        allImagePaths[currentIndex]
+    } else {
+        imagePath
+    }
 
     // Load task or init with image path
-    LaunchedEffect(taskId, imagePath) {
+    LaunchedEffect(taskId, effectiveImagePath) {
         if (taskId != null && taskId != -1L) {
             viewModel.getTaskById(taskId)
-        } else if (imagePath != null) {
+        } else if (effectiveImagePath != null) {
             // Check if task exists for this image, otherwise it's a new task context
-            viewModel.getTaskByPath(imagePath)
+            viewModel.getTaskByPath(effectiveImagePath)
         }
     }
 
-    LaunchedEffect(currentTask) {
+    LaunchedEffect(currentTask, effectiveImagePath) {
         currentTask?.let {
             title = it.title
             description = it.description ?: ""
@@ -76,8 +107,8 @@ fun TaskDetailScreen(
             viewedImagePath = it.imagePath
         } ?: run {
              // If no task found but we have an image path, init for new task
-             if (imagePath != null) {
-                 viewedImagePath = imagePath
+             if (effectiveImagePath != null) {
+                 viewedImagePath = effectiveImagePath
                  title = ""
                  description = ""
                  dueDate = null
@@ -106,12 +137,38 @@ fun TaskDetailScreen(
             }
         }
     }
+    
+    // Navigation functions
+    fun navigateToNext() {
+        if (allImagePaths.isNotEmpty() && currentIndex < allImagePaths.size - 1) {
+            currentIndex++
+            // Reset task state for new image
+            viewModel.clearCurrentTask()
+        }
+    }
+    
+    fun navigateToPrevious() {
+        if (allImagePaths.isNotEmpty() && currentIndex > 0) {
+            currentIndex--
+            // Reset task state for new image
+            viewModel.clearCurrentTask()
+        }
+    }
 
     Scaffold(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = {},
+                title = {
+                    // Show image position indicator if in gallery mode
+                    if (allImagePaths.isNotEmpty()) {
+                        Text(
+                            text = "${currentIndex + 1} / ${allImagePaths.size}",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -146,18 +203,85 @@ fun TaskDetailScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Full Screen Image
-            viewedImagePath?.let { path ->
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(File(path))
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit, // Show full image logic
-                    modifier = Modifier.fillMaxSize()
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(allImagePaths) {
+                    detectDragGestures(
+                        onDragStart = {
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffsetX += dragAmount.x
+                            dragOffsetY += dragAmount.y
+                        },
+                        onDragEnd = {
+                            val swipeThreshold = 100f
+                            val absX = abs(dragOffsetX)
+                            val absY = abs(dragOffsetY)
+                            
+                            // Determine dominant direction
+                            if (absX > absY && absX > swipeThreshold) {
+                                // Horizontal swipe
+                                if (dragOffsetX < 0) {
+                                    // Swipe left -> next image
+                                    isSwipingForward = true
+                                    navigateToNext()
+                                } else {
+                                    // Swipe right -> previous image
+                                    isSwipingForward = false
+                                    navigateToPrevious()
+                                }
+                            } else if (absY > absX && absY > swipeThreshold) {
+                                // Vertical swipe
+                                if (dragOffsetY > 0) {
+                                    // Swipe down -> go back
+                                    onBack()
+                                } else {
+                                    // Swipe up -> focus title field
+                                    titleFocusRequester.requestFocus()
+                                }
+                            }
+                            
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                        },
+                        onDragCancel = {
+                            dragOffsetX = 0f
+                            dragOffsetY = 0f
+                        }
+                    )
+                }
+        ) {
+            // Full Screen Image with animation
+            AnimatedContent(
+                targetState = viewedImagePath,
+                transitionSpec = {
+                    if (isSwipingForward) {
+                        // Swipe left (next): new image comes from right
+                        slideInHorizontally { width -> width } togetherWith
+                            slideOutHorizontally { width -> -width }
+                    } else {
+                        // Swipe right (previous): new image comes from left
+                        slideInHorizontally { width -> -width } togetherWith
+                            slideOutHorizontally { width -> width }
+                    }
+                },
+                label = "ImageTransition"
+            ) { path ->
+                path?.let {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(File(it))
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
             
             // Bottom Sheet for Editing
@@ -170,7 +294,7 @@ fun TaskDetailScreen(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.6f), // Darker start
+                                Color.Black.copy(alpha = 0.6f),
                                 Color.Black.copy(alpha = 0.9f)
                             )
                         )
@@ -183,12 +307,11 @@ fun TaskDetailScreen(
                         .imePadding()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    val focusRequester = remember { FocusRequester() }
-
                     // Title Input
                     BasicTextField(
                         value = title,
                         onValueChange = { title = it },
+                        modifier = Modifier.focusRequester(titleFocusRequester),
                         textStyle = TextStyle(
                             color = Color.White,
                             fontSize = 24.sp,
@@ -197,7 +320,7 @@ fun TaskDetailScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(
-                            onNext = { focusRequester.requestFocus() }
+                            onNext = { descriptionFocusRequester.requestFocus() }
                         ),
                         decorationBox = { innerTextField ->
                             if (title.isEmpty()) {
@@ -214,7 +337,7 @@ fun TaskDetailScreen(
                     BasicTextField(
                         value = description,
                         onValueChange = { description = it },
-                        modifier = Modifier.focusRequester(focusRequester),
+                        modifier = Modifier.focusRequester(descriptionFocusRequester),
                         textStyle = TextStyle(
                             color = Color.White.copy(alpha = 0.8f),
                             fontSize = 16.sp

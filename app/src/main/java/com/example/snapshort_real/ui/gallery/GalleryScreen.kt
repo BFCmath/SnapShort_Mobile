@@ -57,7 +57,7 @@ import java.io.File
 fun GalleryScreen(
     modifier: Modifier = Modifier,
     viewModel: GalleryViewModel = hiltViewModel(),
-    onImageClick: (File) -> Unit = {}
+    onImageClick: (file: File, allFiles: List<File>, index: Int) -> Unit = { _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedImages by viewModel.selectedImages.collectAsState()
@@ -130,7 +130,8 @@ fun GalleryScreen(
                                     if (isSelectionMode) {
                                         viewModel.toggleSelection(file)
                                     } else {
-                                        onImageClick(file)
+                                        val index = state.images.indexOf(file)
+                                        onImageClick(file, state.images, index)
                                     }
                                 },
                                 onLongClick = {
