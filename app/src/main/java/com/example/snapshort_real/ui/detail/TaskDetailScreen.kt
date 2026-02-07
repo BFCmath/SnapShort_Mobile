@@ -302,9 +302,9 @@ fun TaskDetailScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                        .imePadding()
+                        .padding(top = paddingValues.calculateTopPadding())
+                        .padding(bottom = WindowInsets.ime.union(WindowInsets.navigationBars).asPaddingValues().calculateBottomPadding())
+                        .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Title Input
