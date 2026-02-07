@@ -9,41 +9,43 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.snapshort_real.data.Task
+import com.example.snapshort_real.data.TaskSuggestion
 import com.example.snapshort_real.ui.tasks.TaskViewModel
 import java.io.File
 import java.text.SimpleDateFormat
@@ -64,6 +66,11 @@ fun TaskDetailScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val currentTask by viewModel.currentTask.collectAsState()
+    
+    // AI State
+    val aiSuggestion by viewModel.aiTaskSuggestion.collectAsState()
+    val isGeneratingAI by viewModel.isGeneratingAI.collectAsState()
+    var showAIDialog by remember { mutableStateOf(false) }
     
     // Current image index for navigation
     var currentIndex by remember { mutableStateOf(initialIndex) }
@@ -157,6 +164,24 @@ fun TaskDetailScreen(
             viewModel.clearCurrentTask()
         }
     }
+    
+    if (showAIDialog) {
+        AITaskGenerationDialog(
+            isGenerating = isGeneratingAI,
+            suggestion = aiSuggestion,
+            onDismiss = {
+                showAIDialog = false
+                viewModel.clearAISuggestion()
+            },
+            onSave = { newTitle, newDesc, newDate ->
+                if (newTitle != null) title = newTitle
+                if (newDesc != null) description = newDesc
+                if (newDate != null) dueDate = newDate
+                showAIDialog = false
+                viewModel.clearAISuggestion()
+            }
+        )
+    }
 
     Scaffold(
         containerColor = Color.Black,
@@ -185,6 +210,22 @@ fun TaskDetailScreen(
                     }
                 },
                 actions = {
+                    // AI Generate Button
+                    IconButton(
+                        onClick = {
+                            if (effectiveImagePath != null) {
+                                viewModel.generateTaskInfo(effectiveImagePath)
+                                showAIDialog = true
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(Color.Black.copy(alpha = 0.3f), androidx.compose.foundation.shape.CircleShape)
+                    ) {
+                        // Using Star as generic AI/Magic icon to ensure compatibility
+                        Icon(Icons.Default.Star, contentDescription = "AI Generate", tint = Color.Yellow)
+                    }
+                    
                     IconButton(
                         onClick = {
                             if (currentTask != null) {
@@ -302,12 +343,9 @@ fun TaskDetailScreen(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.4f),
-                                Color.Black.copy(alpha = 0.7f),
-                                Color.Black.copy(alpha = 0.95f)
-                            ),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
+                                Color.Black.copy(alpha = 0.6f),
+                                Color.Black.copy(alpha = 0.9f)
+                            )
                         )
                     )
             ) {
@@ -315,7 +353,7 @@ fun TaskDetailScreen(
                     modifier = Modifier
                         .padding(top = paddingValues.calculateTopPadding())
                         .padding(bottom = WindowInsets.ime.union(WindowInsets.navigationBars).asPaddingValues().calculateBottomPadding())
-                        .padding(horizontal = 20.dp, vertical = 24.dp)
+                        .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Title Input
@@ -325,13 +363,8 @@ fun TaskDetailScreen(
                         modifier = Modifier.focusRequester(titleFocusRequester),
                         textStyle = TextStyle(
                             color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = Color.Black.copy(alpha = 0.8f),
-                                offset = androidx.compose.ui.geometry.Offset(3f, 3f),
-                                blurRadius = 6f
-                            )
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -340,23 +373,14 @@ fun TaskDetailScreen(
                         ),
                         decorationBox = { innerTextField ->
                             if (title.isEmpty()) {
-                            Text("Task Name", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = androidx.compose.ui.geometry.Offset(3f, 3f),
-                                    blurRadius = 6f
-                                )
-                            ))
+                                Text("Task Name", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 24.sp, fontWeight = FontWeight.Bold))
                             }
                             innerTextField()
                         },
                         cursorBrush = SolidColor(Color.White)
                     )
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     // Description Input
                     BasicTextField(
@@ -364,34 +388,19 @@ fun TaskDetailScreen(
                         onValueChange = { description = it },
                         modifier = Modifier.focusRequester(descriptionFocusRequester),
                         textStyle = TextStyle(
-                            color = Color.White.copy(alpha = 0.9f),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = Color.Black.copy(alpha = 0.8f),
-                                offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                blurRadius = 4f
-                            )
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 16.sp
                         ),
                         decorationBox = { innerTextField ->
                             if (description.isEmpty()) {
-                            Text("Add a short description...", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                    blurRadius = 4f
-                                )
-                            ))
+                                Text("Add a short description...", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 16.sp))
                             }
                             innerTextField()
                         },
                         cursorBrush = SolidColor(Color.White)
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     // Due Date Picker and Save Button
                     Row(
@@ -401,7 +410,7 @@ fun TaskDetailScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
                                 .clickable {
                                     val calendar = Calendar.getInstance()
                                     dueDate?.let { calendar.timeInMillis = it }
@@ -417,20 +426,19 @@ fun TaskDetailScreen(
                                         calendar.get(Calendar.DAY_OF_MONTH)
                                     ).show()
                                 }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (dueDate != null) {
-                                    SimpleDateFormat("EEE, MMM dd", Locale.getDefault()).format(Date(dueDate!!))
+                                    SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault()).format(Date(dueDate!!))
                                 } else {
                                     "Set Due Date"
                                 },
                                 color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
 
@@ -442,11 +450,9 @@ fun TaskDetailScreen(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
                                 contentColor = Color.Black
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+                            )
                         ) {
-                            Text("Save", fontWeight = FontWeight.Bold)
+                            Text("Save")
                         }
                     }
                     
@@ -455,4 +461,100 @@ fun TaskDetailScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AITaskGenerationDialog(
+    isGenerating: Boolean,
+    suggestion: TaskSuggestion?,
+    onDismiss: () -> Unit,
+    onSave: (String?, String?, Long?) -> Unit
+) {
+    var title by remember(suggestion) { mutableStateOf(suggestion?.title ?: "") }
+    var description by remember(suggestion) { mutableStateOf(suggestion?.description ?: "") }
+    var dueDate by remember(suggestion) { mutableStateOf(suggestion?.dueDate) }
+    
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("AI Task Suggestion") },
+        text = {
+            if (isGenerating) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Analyzing image...")
+                    }
+                }
+            } else if (suggestion != null) {
+                Column {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Task Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Description") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val calendar = Calendar.getInstance()
+                            dueDate?.let { calendar.timeInMillis = it }
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    val selectedDate = Calendar.getInstance()
+                                    selectedDate.set(year, month, day)
+                                    dueDate = selectedDate.timeInMillis
+                                },
+                                calendar.get(Calendar.YEAR),
+                                calendar.get(Calendar.MONTH),
+                                calendar.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DateRange, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (dueDate != null) {
+                                SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault()).format(Date(dueDate!!))
+                            } else {
+                                "Set Due Date"
+                            }
+                        )
+                    }
+                }
+            } else {
+                 Text("Failed to generate task info. Please try again.")
+            }
+        },
+        confirmButton = {
+             if (!isGenerating && suggestion != null) {
+                 Button(onClick = { onSave(title, description, dueDate) }) {
+                     Text("Use Suggestion")
+                 }
+             }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

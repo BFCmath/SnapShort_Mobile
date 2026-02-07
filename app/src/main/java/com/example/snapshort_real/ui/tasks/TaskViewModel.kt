@@ -2,29 +2,33 @@ package com.example.snapshort_real.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.snapshort_real.data.GeminiRepository
 import com.example.snapshort_real.data.ScreenshotRepository
 import com.example.snapshort_real.data.Task
 import com.example.snapshort_real.data.TaskRepository
+import com.example.snapshort_real.data.TaskSuggestion
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
 
 @HiltViewModel
 class TaskViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    private val screenshotRepository: ScreenshotRepository
+    private val screenshotRepository: ScreenshotRepository,
+    private val geminiRepository: GeminiRepository
 ) : ViewModel() {
 
     private val _filterType = MutableStateFlow(TaskFilterType.ALL)
     val filterType: StateFlow<TaskFilterType> = _filterType.asStateFlow()
 
-    val tasks: StateFlow<List<Task>> = kotlinx.coroutines.flow.combine(
+    val tasks: StateFlow<List<Task>> = combine(
         taskRepository.getAllTasks(),
         _filterType
     ) { tasks, filter ->
@@ -45,6 +49,28 @@ class TaskViewModel @Inject constructor(
 
     private val _currentTask = MutableStateFlow<Task?>(null)
     val currentTask: StateFlow<Task?> = _currentTask.asStateFlow()
+
+    // AI Generation State
+    private val _aiTaskSuggestion = MutableStateFlow<TaskSuggestion?>(null)
+    val aiTaskSuggestion: StateFlow<TaskSuggestion?> = _aiTaskSuggestion.asStateFlow()
+
+    private val _isGeneratingAI = MutableStateFlow(false)
+    val isGeneratingAI: StateFlow<Boolean> = _isGeneratingAI.asStateFlow()
+
+    fun generateTaskInfo(imagePath: String) {
+        viewModelScope.launch {
+            _isGeneratingAI.value = true
+            try {
+                _aiTaskSuggestion.value = geminiRepository.generateTaskInfo(imagePath)
+            } finally {
+                _isGeneratingAI.value = false
+            }
+        }
+    }
+
+    fun clearAISuggestion() {
+        _aiTaskSuggestion.value = null
+    }
 
     fun getTaskById(id: Long) {
         viewModelScope.launch {
