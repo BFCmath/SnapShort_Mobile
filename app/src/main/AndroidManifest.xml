@@ -60,7 +60,8 @@
         <activity
             android:name=".ui.edit.EditScreenshotActivity"
             android:theme="@style/Theme.Snapshort_real"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
     </application>
 

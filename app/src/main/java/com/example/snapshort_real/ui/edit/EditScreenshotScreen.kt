@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.snapshort_real.data.Task
 import com.example.snapshort_real.ui.tasks.TaskViewModel
@@ -145,10 +147,17 @@ fun EditImageContent(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf<Long?>(null) }
+    
+    val focusManager = LocalFocusManager.current
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
             .background(Color.Black)
             .windowInsetsPadding(WindowInsets.systemBars)
     ) {
@@ -277,7 +286,7 @@ fun EditImageContent(
                 modifier = Modifier
                     .padding(16.dp)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .imePadding()
+                    .padding(bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding())
                     .verticalScroll(rememberScrollState())
             ) {
                  val focusRequester = remember { FocusRequester() }
