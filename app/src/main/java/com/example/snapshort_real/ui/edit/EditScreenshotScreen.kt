@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -276,6 +277,7 @@ fun EditImageContent(
                 modifier = Modifier
                     .padding(16.dp)
                     .windowInsetsPadding(WindowInsets.navigationBars)
+                    .imePadding()
                     .verticalScroll(rememberScrollState())
             ) {
                  val focusRequester = remember { FocusRequester() }

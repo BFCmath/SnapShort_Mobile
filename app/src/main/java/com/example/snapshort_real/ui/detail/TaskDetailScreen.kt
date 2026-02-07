@@ -5,6 +5,7 @@ import android.widget.DatePicker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -179,6 +180,7 @@ fun TaskDetailScreen(
                     modifier = Modifier
                         .padding(paddingValues)
                         .padding(16.dp)
+                        .imePadding()
                         .verticalScroll(rememberScrollState())
                 ) {
                     val focusRequester = remember { FocusRequester() }
