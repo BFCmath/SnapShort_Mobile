@@ -22,6 +22,10 @@ class GalleryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<GalleryUiState>(GalleryUiState.Loading)
     val uiState: StateFlow<GalleryUiState> = _uiState.asStateFlow()
 
+    // Selection Mode State
+    private val _selectedImages = MutableStateFlow<Set<File>>(emptySet())
+    val selectedImages: StateFlow<Set<File>> = _selectedImages.asStateFlow()
+
     init {
         observeImages()
     }
@@ -40,13 +44,33 @@ class GalleryViewModel @Inject constructor(
                 } else {
                     GalleryUiState.Success(filteredImages)
                 }
+                
+                // Cleanup selection if images are removed externally or by this app
+                _selectedImages.value = _selectedImages.value.filter { it in filteredImages }.toSet()
             }
         }
     }
 
-    fun deleteImage(file: File) {
+    fun toggleSelection(file: File) {
+        val current = _selectedImages.value
+        if (current.contains(file)) {
+            _selectedImages.value = current - file
+        } else {
+            _selectedImages.value = current + file
+        }
+    }
+
+    fun clearSelection() {
+        _selectedImages.value = emptySet()
+    }
+
+    fun deleteSelected() {
         viewModelScope.launch {
-            repository.deleteScreenshot(file)
+            val toDelete = _selectedImages.value
+            toDelete.forEach { file ->
+                repository.deleteScreenshot(file)
+            }
+            clearSelection()
         }
     }
 }

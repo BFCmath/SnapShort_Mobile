@@ -8,7 +8,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
@@ -173,6 +178,8 @@ fun TaskDetailScreen(
                         .padding(16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    val focusRequester = remember { FocusRequester() }
+
                     // Title Input
                     BasicTextField(
                         value = title,
@@ -181,6 +188,11 @@ fun TaskDetailScreen(
                             color = Color.White,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusRequester.requestFocus() }
                         ),
                         decorationBox = { innerTextField ->
                             if (title.isEmpty()) {
@@ -197,6 +209,7 @@ fun TaskDetailScreen(
                     BasicTextField(
                         value = description,
                         onValueChange = { description = it },
+                        modifier = Modifier.focusRequester(focusRequester),
                         textStyle = TextStyle(
                             color = Color.White.copy(alpha = 0.8f),
                             fontSize = 16.sp

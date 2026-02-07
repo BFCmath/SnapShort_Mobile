@@ -1,22 +1,28 @@
 package com.example.snapshort_real.ui.gallery
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,7 +48,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.snapshort_real.R
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun GalleryScreen(
     modifier: Modifier = Modifier,
@@ -50,23 +56,46 @@ fun GalleryScreen(
     onImageClick: (File) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val selectedImages by viewModel.selectedImages.collectAsState()
+    val isSelectionMode = selectedImages.isNotEmpty()
     val imageCount = (uiState as? GalleryUiState.Success)?.images?.size ?: 0
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(text = stringResource(R.string.gallery_title)) },
-                actions = {
-                    if (imageCount > 0) {
-                        Text(
-                            text = imageCount.toString(),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+            if (isSelectionMode) {
+                 CenterAlignedTopAppBar(
+                    title = { Text(text = "${selectedImages.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close Selection")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.deleteSelected() }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Selected")
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            } else {
+                CenterAlignedTopAppBar(
+                    title = { Text(text = stringResource(R.string.gallery_title)) },
+                    actions = {
+                        if (imageCount > 0) {
+                            Text(
+                                text = imageCount.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 16.dp)
+                            )
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -83,16 +112,32 @@ fun GalleryScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(state.images, key = { it.absolutePath }) { file ->
+                            val isSelected = selectedImages.contains(file)
                             GalleryItem(
                                 file = file,
-                                onClick = { onImageClick(file) }
+                                isSelected = isSelected,
+                                selectionMode = isSelectionMode,
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        viewModel.toggleSelection(file)
+                                    } else {
+                                        onImageClick(file)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (!isSelectionMode) {
+                                        viewModel.toggleSelection(file)
+                                    }
+                                }
                             )
                         }
                     }
                 }
                 is GalleryUiState.Empty -> {
                     Column(
-                        modifier = Modifier.align(Alignment.Center),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -112,18 +157,28 @@ fun GalleryScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GalleryItem(
     file: File,
+    isSelected: Boolean,
+    selectionMode: Boolean,
     onClick: () -> Unit,
-    // onDelete: () -> Unit // Removed from here
+    onLongClick: () -> Unit
 ) {
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val borderWidth = if (isSelected) 3.dp else 0.dp
+    
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
@@ -132,19 +187,54 @@ fun GalleryItem(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Gradient overlay
-            Box(
-                 modifier = Modifier
-                     .fillMaxSize()
-                     .background(
-                         Brush.verticalGradient(
-                             colors = listOf(
-                                 Color.Transparent,
-                                 MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+            
+            // Selection Overlay
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(48.dp)
+                    )
+                }
+            } else if (selectionMode) {
+                 // Dim slightly to indicate selection mode
+                 Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.2f))
+                )
+                 // Empty circle to invite selection
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(24.dp)
+                        .background(Color.Transparent, CircleShape)
+                        .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
+                )
+            } else {
+                 // Gradient overlay for better visibility if needed, or keeping it clean
+                 Box(
+                     modifier = Modifier
+                         .fillMaxSize()
+                         .background(
+                             Brush.verticalGradient(
+                                 colors = listOf(
+                                     Color.Transparent,
+                                     MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+                                 )
                              )
                          )
-                     )
-             )
+                 )
+            }
         }
     }
 }

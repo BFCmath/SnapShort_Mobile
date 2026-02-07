@@ -18,12 +18,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -271,7 +276,9 @@ fun EditImageContent(
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .verticalScroll(rememberScrollState())
             ) {
-                 // Title Input
+                 val focusRequester = remember { FocusRequester() }
+
+                // Title Input
                 BasicTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -279,6 +286,11 @@ fun EditImageContent(
                         color = Color.White,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusRequester.requestFocus() }
                     ),
                     decorationBox = { innerTextField ->
                         if (title.isEmpty()) {
@@ -295,6 +307,7 @@ fun EditImageContent(
                 BasicTextField(
                     value = description,
                     onValueChange = { description = it },
+                    modifier = Modifier.focusRequester(focusRequester),
                     textStyle = TextStyle(
                         color = Color.White.copy(alpha = 0.8f),
                         fontSize = 16.sp

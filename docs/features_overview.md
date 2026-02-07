@@ -62,5 +62,22 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Tap**: Open specific task details.
     - **Empty State**: Friendly message when no tasks exist.
 
+#### 7. UX Improvements
+- **Text Navigation**:
+    - **Trigger**: Pressing "Enter" (or "Next") in the **Task Name** field.
+    - **Action**: Automatically moves focus to the **Description** field for seamless typing.
+    - **Scope**: Applied to Edit Screen, Task Detail Screen, and Gallery Detail View.
+
+#### 8. Gallery Multi-Select & Bulk Actions
+- **Selection Mode**:
+    - **Trigger**: Long-press on any image in the gallery.
+    - **Action**: Enters selection mode with visual indicators (checkboxes/borders).
+- **Interaction**:
+    - **Tap**: Toggle selection for individual images.
+    - **Counter**: Top bar updates to show the number of selected items.
+- **Bulk Delete**:
+    - **Action**: Tap the "Delete" icon in the top bar to remove all selected images at once.
+    - **Cleanup**: Automatically exits selection mode after deletion or when cleared.
+
 ---
 
