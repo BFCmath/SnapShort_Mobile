@@ -63,13 +63,18 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
     - **Role**: Displays a grid of captured screenshots.
     - **ViewModel**: `GalleryViewModel`
         - Exposes `GalleryUiState` (Loading, Success, Empty).
+        - **Optimization**: Maintains a `Set<File>` of selected images for O(1) lookup during multi-select mode.
+        - **Performance**: Downsamples images to 300x300 thumbnails using Coil to ensure smooth scrolling.
         - Observes file changes from the repository.
 
 - **`DetailScreen`**
     - **Role**: Full-screen image viewer with deletion capability.
     - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
-
-    - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
+    - **Interactions**:
+        - **Swipe Navigation**:
+            - Horizontal: Navigate between images.
+            - Vertical Down: Dismiss.
+            - Vertical Up: Focus Task Title.
 
 - **`TasksScreen`**
     - **Role**: List view for managing all saved snapshots as tasks.
@@ -90,6 +95,15 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
         - Uses `FileObserver` to watch the internal `screenshots/` directory for externally created files (from the Service).
         - Exposes a `Flow<List<File>>` to the ViewModel, ensuring the UI auto-updates when a new screenshot is captured by the service.
 
+- **`GeminiRepository`**
+    - **Role**: Handles interaction with Google Gemini AI API.
+    - **Model**: `gemini-1.5-flash-latest` (or similar).
+    - **Input**: Bitmap (Screenshot).
+    - **Output**: JSON containing `task_name`, `description`, and `due_date`.
+    - **Key Mechanism**:
+        - Encodes image and prompt.
+        - Parses JSON response to `TaskSuggestion` data object.
+
 ## Key Technical Decisions
 
 - **Why Accessibility Service?**
@@ -102,8 +116,14 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
 - **Hardware vs. Software Bitmaps**
     - The `takeScreenshot()` API returns a `HardwareBuffer`. This must be copied to a software `Bitmap.Config.ARGB_8888` before it can be saved to a file, which is an expensive operation performed on `Dispatchers.IO`.
 
+- **AI Integration Strategy**
+    - Uses **Gemini Flash** model for low latency.
+    - Wraps API calls in `Dispatchers.IO` to prevent UI blocking.
+    - Returns structured JSON to ensure reliable parsing of task details.
+
 ## Current Limitations / TODOs
 
 1.  **Delay Reliability**: The 450ms delay for shade dismissal is hardcoded and may be flaky on some devices.
+2.  **API Key Security**: API Key is currently hardcoded (needs secure storage mechanism).
 
 

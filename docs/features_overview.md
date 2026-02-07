@@ -1,10 +1,10 @@
 # Features Overview
 
 ## Current Implementation Status
-**As of:** 2026-02-06
-**App State:** Core Features Implemented
+**As of:** 2026-02-08
+**App State:** Core Features + AI Integration + Task Management
 
-The application currently supports the **Capture**, **Preview**, **Gallery**, and **Detail View** workflows. Basic file management (delete) is also implemented.
+The application currently supports the **Capture**, **Preview**, **Gallery**, **Detail View**, and **AI Task Extraction** workflows. Advanced file management (bulk delete) is also implemented.
 
 ### ✅ Implemented Features
 
@@ -29,6 +29,7 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
 
 #### 3. Gallery & Management
 - **UI**: Grid view of all captured screenshots (`GalleryScreen`).
+- **Optimization**: Uses image downsampling (300x300 thumbnails) and `Set`-based selection lookup for high performance.
 - **Data Source**: Real-time observation of the app's internal storage `screenshots/` directory using `FileObserver` in `ScreenshotRepository`.
 - **Interaction**:
     - **View**: Tap a thumbnail to open the Detail View.
@@ -37,6 +38,10 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
 #### 4. Detail View
 - **UI**: Full-screen image viewer (`DetailScreen`) with a black background.
 - **Interaction**:
+    - **Swipe Navigation**:
+        - **Left/Right**: Navigate between previous and next images in the gallery.
+        - **Down**: Dismiss/Go Back to gallery.
+        - **Up**: Focus the "Task Name" field for quick editing.
     - **Delete**: Remove the image permanently via the trash icon.
     - **Back**: Return to the gallery.
 
@@ -59,6 +64,7 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Swipe Actions**:
         - **Swipe Right (Start-to-End)**: Mark task as **Done** (Green).
         - **Swipe Left (End-to-Start)**: **Delete** the task (Red).
+    - **Clear Done**: Button to bulk delete all completed tasks and their images.
     - **Tap**: Open specific task details.
     - **Empty State**: Friendly message when no tasks exist.
 
@@ -67,6 +73,8 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Trigger**: Pressing "Enter" (or "Next") in the **Task Name** field.
     - **Action**: Automatically moves focus to the **Description** field for seamless typing.
     - **Scope**: Applied to Edit Screen, Task Detail Screen, and Gallery Detail View.
+- **Keyboard Handling**: Tapping outside text fields dismisses the keyboard and clears focus.
+- **Visuals**: Enhanced text shadows and gradients for better readability on varied image backgrounds.
 
 #### 8. Gallery Multi-Select & Bulk Actions
 - **Selection Mode**:
@@ -79,5 +87,12 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Action**: Tap the "Delete" icon in the top bar to remove all selected images at once.
     - **Cleanup**: Automatically exits selection mode after deletion or when cleared.
 
----
+#### 9. AI Task Extraction (Gemini)
+- **Engine**: Google Gemini 1.5 Flash (`gemini-1.5-flash`).
+- **Trigger**: "Star" icon in Task Detail View.
+- **Capability**: Analyzes the image to automatically extract:
+    - **Task Name**: Short title.
+    - **Description**: Brief summary.
+    - **Due Date**: Infers specific dates from text (e.g., "tomorrow", "next Friday").
+- **UX**: User reviews suggestions in a dialog before applying them.
 
