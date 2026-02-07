@@ -302,9 +302,12 @@ fun TaskDetailScreen(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.6f),
-                                Color.Black.copy(alpha = 0.9f)
-                            )
+                                Color.Black.copy(alpha = 0.4f),
+                                Color.Black.copy(alpha = 0.7f),
+                                Color.Black.copy(alpha = 0.95f)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
                         )
                     )
             ) {
@@ -312,7 +315,7 @@ fun TaskDetailScreen(
                     modifier = Modifier
                         .padding(top = paddingValues.calculateTopPadding())
                         .padding(bottom = WindowInsets.ime.union(WindowInsets.navigationBars).asPaddingValues().calculateBottomPadding())
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 20.dp, vertical = 24.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Title Input
@@ -321,14 +324,14 @@ fun TaskDetailScreen(
                         onValueChange = { title = it },
                         modifier = Modifier.focusRequester(titleFocusRequester),
                         textStyle = TextStyle(
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                            blurRadius = 4f
-                        )
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black.copy(alpha = 0.8f),
+                                offset = androidx.compose.ui.geometry.Offset(3f, 3f),
+                                blurRadius = 6f
+                            )
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -338,11 +341,46 @@ fun TaskDetailScreen(
                         decorationBox = { innerTextField ->
                             if (title.isEmpty()) {
                             Text("Task Name", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black,
+                                    color = Color.Black.copy(alpha = 0.8f),
+                                    offset = androidx.compose.ui.geometry.Offset(3f, 3f),
+                                    blurRadius = 6f
+                                )
+                            ))
+                            }
+                            innerTextField()
+                        },
+                        cursorBrush = SolidColor(Color.White)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Description Input
+                    BasicTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        modifier = Modifier.focusRequester(descriptionFocusRequester),
+                        textStyle = TextStyle(
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black.copy(alpha = 0.8f),
+                                offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                blurRadius = 4f
+                            )
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (description.isEmpty()) {
+                            Text("Add a short description...", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black.copy(alpha = 0.8f),
                                     offset = androidx.compose.ui.geometry.Offset(2f, 2f),
                                     blurRadius = 4f
                                 )
@@ -353,40 +391,7 @@ fun TaskDetailScreen(
                         cursorBrush = SolidColor(Color.White)
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Description Input
-                    BasicTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        modifier = Modifier.focusRequester(descriptionFocusRequester),
-                        textStyle = TextStyle(
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 16.sp,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = androidx.compose.ui.geometry.Offset(1f, 1f),
-                            blurRadius = 2f
-                        )
-                        ),
-                        decorationBox = { innerTextField ->
-                            if (description.isEmpty()) {
-                            Text("Add a short description...", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 16.sp,
-                                shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black,
-                                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
-                                    blurRadius = 2f
-                                )
-                            ))
-                            }
-                            innerTextField()
-                        },
-                        cursorBrush = SolidColor(Color.White)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     
                     // Due Date Picker and Save Button
                     Row(
@@ -396,7 +401,7 @@ fun TaskDetailScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                                 .clickable {
                                     val calendar = Calendar.getInstance()
                                     dueDate?.let { calendar.timeInMillis = it }
@@ -412,19 +417,20 @@ fun TaskDetailScreen(
                                         calendar.get(Calendar.DAY_OF_MONTH)
                                     ).show()
                                 }
-                                .padding(8.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (dueDate != null) {
-                                    SimpleDateFormat("EEE, MMM dd, yyyy", Locale.getDefault()).format(Date(dueDate!!))
+                                    SimpleDateFormat("EEE, MMM dd", Locale.getDefault()).format(Date(dueDate!!))
                                 } else {
                                     "Set Due Date"
                                 },
                                 color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
 
@@ -436,9 +442,11 @@ fun TaskDetailScreen(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
                                 contentColor = Color.Black
-                            )
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
                         ) {
-                            Text("Save")
+                            Text("Save", fontWeight = FontWeight.Bold)
                         }
                     }
                     

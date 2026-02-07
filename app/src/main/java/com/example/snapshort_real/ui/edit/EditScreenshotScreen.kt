@@ -276,15 +276,18 @@ fun EditImageContent(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.6f),
-                            Color.Black.copy(alpha = 0.9f)
-                        )
+                            Color.Black.copy(alpha = 0.4f),
+                            Color.Black.copy(alpha = 0.7f),
+                            Color.Black.copy(alpha = 0.95f)
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
                     )
                 )
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding())
                     .verticalScroll(rememberScrollState())
@@ -297,12 +300,12 @@ fun EditImageContent(
                     onValueChange = { title = it },
                     textStyle = TextStyle(
                         color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = Offset(2f, 2f),
-                            blurRadius = 4f
+                            color = Color.Black.copy(alpha = 0.8f),
+                            offset = Offset(3f, 3f),
+                            blurRadius = 6f
                         )
                     ),
                     singleLine = true,
@@ -313,11 +316,46 @@ fun EditImageContent(
                     decorationBox = { innerTextField ->
                         if (title.isEmpty()) {
                             Text("Task Name", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black,
+                                    color = Color.Black.copy(alpha = 0.8f),
+                                    offset = Offset(3f, 3f),
+                                    blurRadius = 6f
+                                )
+                            ))
+                        }
+                        innerTextField()
+                    },
+                    cursorBrush = SolidColor(Color.White)
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Description Input
+                BasicTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    modifier = Modifier.focusRequester(focusRequester),
+                    textStyle = TextStyle(
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black.copy(alpha = 0.8f),
+                            offset = Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (description.isEmpty()) {
+                            Text("Add a short description...", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black.copy(alpha = 0.8f),
                                     offset = Offset(2f, 2f),
                                     blurRadius = 4f
                                 )
@@ -328,40 +366,7 @@ fun EditImageContent(
                     cursorBrush = SolidColor(Color.White)
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Description Input
-                BasicTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    modifier = Modifier.focusRequester(focusRequester),
-                    textStyle = TextStyle(
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 16.sp,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = Offset(1f, 1f),
-                            blurRadius = 2f
-                        )
-                    ),
-                    decorationBox = { innerTextField ->
-                        if (description.isEmpty()) {
-                            Text("Add a short description...", style = TextStyle(
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 16.sp,
-                                shadow = androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black,
-                                    offset = Offset(1f, 1f),
-                                    blurRadius = 2f
-                                )
-                            ))
-                        }
-                        innerTextField()
-                    },
-                    cursorBrush = SolidColor(Color.White)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Toolbar Row (DueDate, Delete, Crop, Save)
                 Row(
@@ -374,7 +379,7 @@ fun EditImageContent(
                         // Date Picker
                         Row(
                             modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                                 .clickable {
                                     val calendar = Calendar.getInstance()
                                     dueDate?.let { calendar.timeInMillis = it }
@@ -390,33 +395,41 @@ fun EditImageContent(
                                         calendar.get(Calendar.DAY_OF_MONTH)
                                     ).show()
                                 }
-                                .padding(8.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             if (dueDate != null) {
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(dueDate!!)),
                                     color = Color.White,
-                                    fontSize = 12.sp
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.background(Color.White.copy(alpha = 0.15f), androidx.compose.foundation.shape.CircleShape)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
                         
                          if (cropRectStart != null) {
-                            IconButton(onClick = {
-                                cropRectStart = null
-                                cropRectEnd = null
-                                isCropping = false
-                            }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove Crop", tint = Color.White)
+                             Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    cropRectStart = null
+                                    cropRectEnd = null
+                                    isCropping = false
+                                },
+                                modifier = Modifier.background(Color.White.copy(alpha = 0.15f), androidx.compose.foundation.shape.CircleShape)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove Crop", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -437,9 +450,11 @@ fun EditImageContent(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
                             contentColor = Color.Black
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
                     ) {
-                        Text("Save")
+                        Text("Save", fontWeight = FontWeight.Bold)
                     }
                 }
             }
