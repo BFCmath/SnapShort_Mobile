@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -60,6 +62,7 @@ fun TaskDetailScreen(
     viewModel: TaskViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val currentTask by viewModel.currentTask.collectAsState()
     
     // Current image index for navigation
@@ -206,6 +209,11 @@ fun TaskDetailScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
                 .pointerInput(allImagePaths) {
                     detectDragGestures(
                         onDragStart = {
