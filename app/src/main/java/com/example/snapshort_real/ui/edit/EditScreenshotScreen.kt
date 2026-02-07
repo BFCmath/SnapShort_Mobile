@@ -106,14 +106,16 @@ fun EditScreenshotScreen(
             onSave = { result, title, description, dueDate ->
                 scope.launch {
                     val savedUri = saveBitmapToUri(context, result, imageUri)
-                    // Create and save the task
-                    val task = Task(
-                        imagePath = savedUri.path ?: savedUri.toString(),
-                        title = title.ifEmpty { "Untitled Snap" },
-                        description = description,
-                        dueDate = dueDate
-                    )
-                    viewModel.saveTask(task)
+                    // Only create a task if user provides title or due date
+                    if (title.isNotEmpty() || dueDate != null) {
+                        val task = Task(
+                            imagePath = savedUri.path ?: savedUri.toString(),
+                            title = title.ifEmpty { "Untitled Snap" },
+                            description = description,
+                            dueDate = dueDate
+                        )
+                        viewModel.saveTask(task)
+                    }
                     onSave(savedUri)
                 }
             }

@@ -44,6 +44,8 @@ fun TasksScreen(
 ) {
     val tasks by viewModel.tasks.collectAsState()
     val filterType by viewModel.filterType.collectAsState()
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    val hasCompletedTasks = tasks.any { it.isCompleted }
 
     Scaffold(
         topBar = {
@@ -52,7 +54,19 @@ fun TasksScreen(
                     title = { Text("My Tasks", fontWeight = FontWeight.Bold) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
-                    )
+                    ),
+                    actions = {
+                        if (hasCompletedTasks) {
+                            TextButton(
+                                onClick = { showDeleteConfirmDialog = true },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("Clear Done")
+                            }
+                        }
+                    }
                 )
                 
                 // Filter Chips
@@ -125,6 +139,32 @@ fun TasksScreen(
                 }
             }
         }
+    }
+
+    // Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Delete All Completed Tasks?") },
+            text = { Text("This will permanently delete all tasks marked as done. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCompletedTasks()
+                        showDeleteConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

@@ -17,4 +17,8 @@ class TaskRepository @Inject constructor(
     suspend fun updateTask(task: Task): Int = taskDao.updateTask(task)
 
     suspend fun deleteTask(task: Task): Int = taskDao.deleteTask(task)
+
+    suspend fun getCompletedTasks(): List<Task> = taskDao.getCompletedTasks()
+
+    suspend fun deleteCompletedTasks(): Int = taskDao.deleteCompletedTasks()
 }

@@ -100,8 +100,8 @@ fun TaskDetailScreen(
                 )
                 viewModel.saveTask(task)
             } else if (currentTask != null) {
-                // Was a task, but now empty -> Demote to Snap (delete from DB)
-                viewModel.deleteTask(currentTask!!)
+                // Was a task, but now empty -> Demote to Snap (delete from DB, keep image)
+                viewModel.removeTaskOnly(currentTask!!)
             }
         }
     }
@@ -126,10 +126,13 @@ fun TaskDetailScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            currentTask?.let { viewModel.deleteTask(it) }
-                            // If it's just a file (not task yet), we might want to delete the file too?
-                            // For now, let's assume we delete the task from DB.
-                            // If user wants to delete image, they use 'Delete' button in bottom bar logic or similar
+                            if (currentTask != null) {
+                                // Delete task and its image
+                                viewModel.deleteTask(currentTask!!)
+                            } else if (viewedImagePath != null) {
+                                // Delete just the image file (no task associated)
+                                viewModel.deleteImageOnly(viewedImagePath!!)
+                            }
                             onBack()
                         },
                         modifier = Modifier

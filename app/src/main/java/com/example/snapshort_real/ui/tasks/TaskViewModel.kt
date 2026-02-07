@@ -2,6 +2,7 @@ package com.example.snapshort_real.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.snapshort_real.data.ScreenshotRepository
 import com.example.snapshort_real.data.Task
 import com.example.snapshort_real.data.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,10 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 @HiltViewModel
 class TaskViewModel @Inject constructor(
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val screenshotRepository: ScreenshotRepository
 ) : ViewModel() {
 
     private val _filterType = MutableStateFlow(TaskFilterType.ALL)
@@ -77,7 +80,53 @@ class TaskViewModel @Inject constructor(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
+            // Delete the image file first
+            val file = File(task.imagePath)
+            if (file.exists()) {
+                screenshotRepository.deleteScreenshot(file)
+            }
+            // Then delete the task record
             taskRepository.deleteTask(task)
+        }
+    }
+
+    /**
+     * Removes only the task record from DB, keeping the image file.
+     * Use this when demoting a task back to a snap.
+     */
+    fun removeTaskOnly(task: Task) {
+        viewModelScope.launch {
+            taskRepository.deleteTask(task)
+        }
+    }
+
+    /**
+     * Deletes only the image file (for snaps that are not associated with a task).
+     */
+    fun deleteImageOnly(imagePath: String) {
+        viewModelScope.launch {
+            val file = File(imagePath)
+            if (file.exists()) {
+                screenshotRepository.deleteScreenshot(file)
+            }
+        }
+    }
+
+    fun deleteCompletedTasks() {
+        viewModelScope.launch {
+            // Get completed tasks first to delete their images
+            val completedTasks = taskRepository.getCompletedTasks()
+            
+            // Delete the image files
+            completedTasks.forEach { task ->
+                val file = File(task.imagePath)
+                if (file.exists()) {
+                    screenshotRepository.deleteScreenshot(file)
+                }
+            }
+            
+            // Delete the task records from database
+            taskRepository.deleteCompletedTasks()
         }
     }
 }
