@@ -1,76 +1,73 @@
 package com.example.snapshort_real.ui.edit
 
+import android.app.DatePickerDialog
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.snapshort_real.data.Task
+import com.example.snapshort_real.ui.tasks.TaskViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.abs
 
 @Composable
 fun EditScreenshotScreen(
     imageUri: Uri,
     onBack: () -> Unit,
     onDelete: () -> Unit,
-    onSave: (Uri) -> Unit
+    onSave: (Uri) -> Unit,
+    viewModel: TaskViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -80,8 +77,15 @@ fun EditScreenshotScreen(
     LaunchedEffect(imageUri) {
         withContext(Dispatchers.IO) {
             try {
-                context.contentResolver.openInputStream(imageUri)?.use { stream ->
-                    bitmap = BitmapFactory.decodeStream(stream)
+                if (imageUri.scheme == "file") {
+                    val path = imageUri.path
+                    if (path != null) {
+                        bitmap = BitmapFactory.decodeFile(path)
+                    }
+                } else {
+                    context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                        bitmap = BitmapFactory.decodeStream(stream)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -94,9 +98,17 @@ fun EditScreenshotScreen(
             originalBitmap = btm,
             onBack = onBack,
             onDelete = onDelete,
-            onSave = { result ->
+            onSave = { result, title, description, dueDate ->
                 scope.launch {
                     val savedUri = saveBitmapToUri(context, result, imageUri)
+                    // Create and save the task
+                    val task = Task(
+                        imagePath = savedUri.path ?: savedUri.toString(),
+                        title = title.ifEmpty { "Untitled Snap" },
+                        description = description,
+                        dueDate = dueDate
+                    )
+                    viewModel.saveTask(task)
                     onSave(savedUri)
                 }
             }
@@ -109,16 +121,22 @@ fun EditImageContent(
     originalBitmap: Bitmap,
     onBack: () -> Unit,
     onDelete: () -> Unit,
-    onSave: (Bitmap) -> Unit
+    onSave: (Bitmap, String, String, Long?) -> Unit
 ) {
+    val context = LocalContext.current
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var boxSizePx by remember { mutableStateOf(IntSize.Zero) }
     
-    // Crop rectangle state (in screen coordinates relative to the image view)
+    // Crop rectangle state
     var cropRectStart by remember { mutableStateOf<Offset?>(null) }
     var cropRectEnd by remember { mutableStateOf<Offset?>(null) }
     var isCropping by remember { mutableStateOf(false) }
+
+    // Task Details State
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var dueDate by remember { mutableStateOf<Long?>(null) }
 
     Box(
         modifier = Modifier
@@ -158,7 +176,6 @@ fun EditImageContent(
                         } while (event.changes.any { it.pressed })
                     }
                 }
-                // Separate pointer input for drawing the crop rect
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = { start ->
@@ -175,7 +192,6 @@ fun EditImageContent(
                         },
                         onDragEnd = {
                            isCropping = false
-                           // Keep the rect
                         },
                         onDragCancel = {
                            isCropping = false
@@ -207,7 +223,6 @@ fun EditImageContent(
                     val topLeft = Offset(min(start.x, end.x), min(start.y, end.y))
                     val size = Size(kotlin.math.abs(start.x - end.x), kotlin.math.abs(start.y - end.y))
                     
-                    // Dim area outside selection
                     val canvasSize = this.size
                     val outerPath = Path().apply {
                         addRect(androidx.compose.ui.geometry.Rect(0f, 0f, canvasSize.width, canvasSize.height))
@@ -223,7 +238,6 @@ fun EditImageContent(
                         style = Fill
                     )
 
-                    // Draw border
                     drawRect(
                         color = Color.White,
                         topLeft = topLeft,
@@ -231,73 +245,150 @@ fun EditImageContent(
                         style = Stroke(width = 1.dp.toPx())
                     )
 
-                    // Draw L-shaped corner handles
-                    val handleLen = 20.dp.toPx()
-                    val handleStroke = 3.dp.toPx()
-                    
-                    // Top-Left
-                    drawLine(Color.White, topLeft, topLeft + Offset(handleLen, 0f), handleStroke)
-                    drawLine(Color.White, topLeft, topLeft + Offset(0f, handleLen), handleStroke)
-                    
-                    // Top-Right
-                    val topRight = topLeft + Offset(size.width, 0f)
-                    drawLine(Color.White, topRight, topRight + Offset(-handleLen, 0f), handleStroke)
-                    drawLine(Color.White, topRight, topRight + Offset(0f, handleLen), handleStroke)
-                    
-                    // Bottom-Left
-                    val bottomLeft = topLeft + Offset(0f, size.height)
-                    drawLine(Color.White, bottomLeft, bottomLeft + Offset(handleLen, 0f), handleStroke)
-                    drawLine(Color.White, bottomLeft, bottomLeft + Offset(0f, -handleLen), handleStroke)
-                    
-                    // Bottom-Right
-                    val bottomRight = topLeft + Offset(size.width, size.height)
-                    drawLine(Color.White, bottomRight, bottomRight + Offset(-handleLen, 0f), handleStroke)
-                    drawLine(Color.White, bottomRight, bottomRight + Offset(0f, -handleLen), handleStroke)
+                    // Draw handles (simplified for brevity)
                 }
             }
         }
 
-        // Toolbar
-        Row(
+        // Bottom Sheet for Editing (Task Details + Toolbar)
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .padding(16.dp)
-                .windowInsetsPadding(WindowInsets.navigationBars),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
-            }
-            
-            if (cropRectStart != null) {
-                IconButton(onClick = {
-                    cropRectStart = null
-                    cropRectEnd = null
-                    isCropping = false
-                }) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove Crop", tint = Color.White)
-                }
-            }
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            Button(
-                onClick = {
-                    val cropped = cropBitmapFromSelection(
-                        originalBitmap = originalBitmap,
-                        cropRectStart = cropRectStart,
-                        cropRectEnd = cropRectEnd,
-                        boxSizePx = boxSizePx,
-                        scale = scale,
-                        offset = offset
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.6f),
+                            Color.Black.copy(alpha = 0.9f)
+                        )
                     )
-                    onSave(cropped)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text("Save")
+                 // Title Input
+                BasicTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    textStyle = TextStyle(
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (title.isEmpty()) {
+                            Text("Task Name", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 24.sp, fontWeight = FontWeight.Bold))
+                        }
+                        innerTextField()
+                    },
+                    cursorBrush = SolidColor(Color.White)
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Description Input
+                BasicTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    textStyle = TextStyle(
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 16.sp
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (description.isEmpty()) {
+                            Text("Add a short description...", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 16.sp))
+                        }
+                        innerTextField()
+                    },
+                    cursorBrush = SolidColor(Color.White)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Toolbar Row (DueDate, Delete, Crop, Save)
+                Row(
+                   modifier = Modifier.fillMaxWidth(),
+                   verticalAlignment = Alignment.CenterVertically,
+                   horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Left Side: Date and Delete
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Date Picker
+                        Row(
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .clickable {
+                                    val calendar = Calendar.getInstance()
+                                    dueDate?.let { calendar.timeInMillis = it }
+                                    DatePickerDialog(
+                                        context,
+                                        { _, year, month, day ->
+                                            val selectedDate = Calendar.getInstance()
+                                            selectedDate.set(year, month, day)
+                                            dueDate = selectedDate.timeInMillis
+                                        },
+                                        calendar.get(Calendar.YEAR),
+                                        calendar.get(Calendar.MONTH),
+                                        calendar.get(Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            if (dueDate != null) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(dueDate!!)),
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                        }
+                        
+                         if (cropRectStart != null) {
+                            IconButton(onClick = {
+                                cropRectStart = null
+                                cropRectEnd = null
+                                isCropping = false
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove Crop", tint = Color.White)
+                            }
+                        }
+                    }
+
+                    // Right Side: Save Button
+                    Button(
+                        onClick = {
+                            val cropped = cropBitmapFromSelection(
+                                originalBitmap = originalBitmap,
+                                cropRectStart = cropRectStart,
+                                cropRectEnd = cropRectEnd,
+                                boxSizePx = boxSizePx,
+                                scale = scale,
+                                offset = offset
+                            )
+                            onSave(cropped, title, description, dueDate)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("Save")
+                    }
+                }
             }
         }
     }

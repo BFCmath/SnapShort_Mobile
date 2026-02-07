@@ -66,8 +66,8 @@ class ScreenshotAccessibilityService : AccessibilityService() {
             takeScreenshot(
                 Display.DEFAULT_DISPLAY,
                 getMainExecutor(),
-                object : TakeScreenshotCallback {
-                    override fun onSuccess(screenshot: ScreenshotResult) {
+                object : AccessibilityService.TakeScreenshotCallback {
+                    override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
                         Log.d(TAG, "Screenshot captured successfully")
 
                         val hardwareBitmap = Bitmap.wrapHardwareBuffer(
@@ -111,7 +111,7 @@ class ScreenshotAccessibilityService : AccessibilityService() {
     /**
      * Handles the heavy lifting of saving the bitmap on a background thread
      */
-    private fun processAndSaveBitmap(hardwareBitmap: Bitmap, screenshot: ScreenshotResult) {
+    private fun processAndSaveBitmap(hardwareBitmap: Bitmap, screenshot: AccessibilityService.ScreenshotResult) {
         serviceScope.launch(Dispatchers.IO) {
             Log.d(TAG, "Starting bitmap save process...")
             try {

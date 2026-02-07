@@ -69,6 +69,19 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
     - **Role**: Full-screen image viewer with deletion capability.
     - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
 
+    - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
+
+- **`TasksScreen`**
+    - **Role**: List view for managing all saved snapshots as tasks.
+    - **ViewModel**: `TaskViewModel`
+        - **State**: Exposes `tasks` (List<Task>) and `filterType` (All/Active/Done).
+        - **Logic**: Combines repository data with filter state. Handles specific task filtering.
+    - **Interactions**:
+        - **Swipe-to-Dismiss**:
+            - Left-to-Right: Mark as Done.
+            - Right-to-Left: Delete.
+        - **Filter Chips**: Toggle between task states.
+
 ### 3. Data Layer
 
 - **`ScreenshotRepository`**

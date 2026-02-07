@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,17 +35,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.example.snapshort_real.ui.theme.Snapshort_realTheme
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-// import com.example.snapshort_real.EditScreenshotActivity // Assuming this exists or will be moved
 
 class PreviewActivity : ComponentActivity() {
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -72,10 +77,16 @@ class PreviewActivity : ComponentActivity() {
                     imageUri = imageUri,
                     onDismiss = { finish() },
                     onEdit = {
-                        val editIntent = android.content.Intent(this@PreviewActivity, com.example.snapshort_real.ui.edit.EditScreenshotActivity::class.java).apply {
-                           putExtra("IMAGE_URI", imageUriString)
+                        try {
+                            val currentUriString = intent.getStringExtra("IMAGE_URI") ?: imageUriString
+                            val editIntent = android.content.Intent(this@PreviewActivity, com.example.snapshort_real.ui.edit.EditScreenshotActivity::class.java).apply {
+                               putExtra("IMAGE_URI", currentUriString)
+                            }
+                            editLauncher.launch(editIntent)
+                        } catch (e: Exception) {
+                            android.util.Log.e("PreviewActivity", "Failed to launch edit activity", e)
+                            android.widget.Toast.makeText(this, "Error opening editor: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
                         }
-                        editLauncher.launch(editIntent)
                     }
                 )
             }
@@ -179,8 +190,21 @@ fun PreviewScreen(
             shape = RoundedCornerShape(16.dp), // Slightly rounder
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
+            val painter = rememberAsyncImagePainter(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(if (imageUri.scheme == "file" && imageUri.path != null) java.io.File(imageUri.path!!) else imageUri)
+                    .listener(
+                        onStart = { android.util.Log.d("PreviewActivity", "Coil: onStart") },
+                        onCancel = { android.util.Log.d("PreviewActivity", "Coil: onCancel") },
+                        onError = { _, result -> android.util.Log.e("PreviewActivity", "Coil: onError - ${result.throwable.message}", result.throwable) },
+                        onSuccess = { _, _ -> android.util.Log.d("PreviewActivity", "Coil: onSuccess") }
+                    )
+                    .crossfade(true)
+                    .build()
+            )
+
             Image(
-                painter = rememberAsyncImagePainter(imageUri),
+                painter = painter,
                 contentDescription = "Screenshot Preview",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

@@ -50,5 +50,17 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, an
     - **Delete**: Quick access to discard the image immediately.
     - **Reset**: A contextual "Close" button to remove the crop rectangle and start over.
 
+#### 6. Task Management
+- **UI**: A dedicated "My Tasks" screen listing all saved snaps as tasks.
+- **Organization**:
+    - **Filters**: Helper chips to view "All", "Active" (Note), or "Done" tasks.
+    - **Visuals**: Tasks display the initial snapshot as a background with a gradient overlay for text readability.
+- **Interaction**:
+    - **Swipe Actions**:
+        - **Swipe Right (Start-to-End)**: Mark task as **Done** (Green).
+        - **Swipe Left (End-to-Start)**: **Delete** the task (Red).
+    - **Tap**: Open specific task details.
+    - **Empty State**: Friendly message when no tasks exist.
+
 ---
 

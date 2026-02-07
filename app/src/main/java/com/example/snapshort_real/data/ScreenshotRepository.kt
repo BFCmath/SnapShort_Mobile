@@ -40,7 +40,7 @@ class ScreenshotRepository @Inject constructor(
 
         val observer = object : FileObserver(
             screenshotsDir.absolutePath,
-            CREATE or DELETE or MOVED_TO or MOVED_FROM or CLOSE_WRITE
+            FileObserver.CREATE or FileObserver.DELETE or FileObserver.MOVED_TO or FileObserver.MOVED_FROM or FileObserver.CLOSE_WRITE
         ) {
             override fun onEvent(event: Int, path: String?) {
                 trySend(listScreenshots())
