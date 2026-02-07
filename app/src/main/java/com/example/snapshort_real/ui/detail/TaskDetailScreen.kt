@@ -321,9 +321,14 @@ fun TaskDetailScreen(
                         onValueChange = { title = it },
                         modifier = Modifier.focusRequester(titleFocusRequester),
                         textStyle = TextStyle(
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black,
+                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -332,7 +337,16 @@ fun TaskDetailScreen(
                         ),
                         decorationBox = { innerTextField ->
                             if (title.isEmpty()) {
-                                Text("Task Name", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 24.sp, fontWeight = FontWeight.Bold))
+                            Text("Task Name", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black,
+                                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                    blurRadius = 4f
+                                )
+                            ))
                             }
                             innerTextField()
                         },
@@ -347,12 +361,25 @@ fun TaskDetailScreen(
                         onValueChange = { description = it },
                         modifier = Modifier.focusRequester(descriptionFocusRequester),
                         textStyle = TextStyle(
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 16.sp
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 16.sp,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black,
+                            offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                            blurRadius = 2f
+                        )
                         ),
                         decorationBox = { innerTextField ->
                             if (description.isEmpty()) {
-                                Text("Add a short description...", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 16.sp))
+                            Text("Add a short description...", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 16.sp,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black,
+                                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                                    blurRadius = 2f
+                                )
+                            ))
                             }
                             innerTextField()
                         },

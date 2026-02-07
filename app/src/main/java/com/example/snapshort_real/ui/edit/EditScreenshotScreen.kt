@@ -298,7 +298,12 @@ fun EditImageContent(
                     textStyle = TextStyle(
                         color = Color.White,
                         fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black,
+                            offset = Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
                     ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -307,7 +312,16 @@ fun EditImageContent(
                     ),
                     decorationBox = { innerTextField ->
                         if (title.isEmpty()) {
-                            Text("Task Name", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 24.sp, fontWeight = FontWeight.Bold))
+                            Text("Task Name", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black,
+                                    offset = Offset(2f, 2f),
+                                    blurRadius = 4f
+                                )
+                            ))
                         }
                         innerTextField()
                     },
@@ -323,11 +337,24 @@ fun EditImageContent(
                     modifier = Modifier.focusRequester(focusRequester),
                     textStyle = TextStyle(
                         color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black,
+                            offset = Offset(1f, 1f),
+                            blurRadius = 2f
+                        )
                     ),
                     decorationBox = { innerTextField ->
                         if (description.isEmpty()) {
-                            Text("Add a short description...", style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 16.sp))
+                            Text("Add a short description...", style = TextStyle(
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 16.sp,
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black,
+                                    offset = Offset(1f, 1f),
+                                    blurRadius = 2f
+                                )
+                            ))
                         }
                         innerTextField()
                     },
