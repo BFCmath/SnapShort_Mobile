@@ -7,6 +7,7 @@ The application follows modern Android development practices, utilizing **MVVM (
 - **Language**: Kotlin
 - **UI Toolkit**: Jetpack Compose
 - **Dependency Injection**: Hilt
+- **Persistence**: Room Database (SQLite abstraction)
 - **Navigation**: Jetpack Navigation Compose
 - **Async Processing**: Kotlin Coroutines & Flow
 
@@ -54,50 +55,61 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
 
 - **`MainActivity`**
     - **Role**: Single Activity entry point.
-    - **Implementation**: Hosts the `NavHost` for determining which screen to show.
+    - **Implementation**: Hosts the `NavHost`.
     - **Navigation Graph**:
-        - `gallery` -> Shows `GalleryScreen`.
-        - `detail/{imagePath}` -> Shows `DetailScreen`.
+        - `gallery`: Shows `GalleryScreen`.
+        - `tasks`: Shows `TasksScreen`.
+        - `task_detail`: Shows `TaskDetailScreen`.
+        - **Unified Navigation**: Both Gallery items and Tasks navigate to `task_detail`, passing either an `imagePath` (new snap) or `taskId` (existing task).
 
 - **`GalleryScreen`**
-    - **Role**: Displays a grid of captured screenshots.
+    - **Role**: Displays a grid of available *snapshots* (unprocessed images).
     - **ViewModel**: `GalleryViewModel`
         - Exposes `GalleryUiState` (Loading, Success, Empty).
-        - **Optimization**: Maintains a `Set<File>` of selected images for O(1) lookup during multi-select mode.
-        - **Performance**: Downsamples images to 300x300 thumbnails using Coil to ensure smooth scrolling.
-        - Observes file changes from the repository.
+        - **Smart Filtering**: Combines `ScreenshotRepository` (files) and `TaskRepository` (DB) streams. Images that exist in the DB are *hidden* from the Gallery to prevent duplication.
+        - **Performance**: Downsamples images to 300x300 thumbnails using Coil.
+    - **Multi-Select**: Maintains a `Set<File>` state for batch deletion.
 
-- **`DetailScreen`**
-    - **Role**: Full-screen image viewer with deletion capability.
-    - **Features**: Asynchronous image loading (`AsyncImage`), darker theme for immersion.
-    - **Interactions**:
-        - **Swipe Navigation**:
-            - Horizontal: Navigate between images.
-            - Vertical Down: Dismiss.
-            - Vertical Up: Focus Task Title.
+- **`TaskDetailScreen`** (Unified Detail View)
+    - **Role**: Versatile screen for viewing images, creating tasks, and editing task details.
+    - **Modes**:
+        - **Snapshot Mode**: Triggered by passing `imagePath`. View image, delete file, or "Save" to convert to Task.
+        - **Task Mode**: Triggered by passing `taskId`. View full details, edit metadata, mark complete, or delete.
+    - **AI Integration**: Triggers `GeminiRepository` to fill task fields.
 
 - **`TasksScreen`**
-    - **Role**: List view for managing all saved snapshots as tasks.
+    - **Role**: List view for managing all saved tasks.
     - **ViewModel**: `TaskViewModel`
         - **State**: Exposes `tasks` (List<Task>) and `filterType` (All/Active/Done).
-        - **Logic**: Combines repository data with filter state. Handles specific task filtering.
+        - **Logic**: Combines repository data with filter state.
     - **Interactions**:
         - **Swipe-to-Dismiss**:
-            - Left-to-Right: Mark as Done.
-            - Right-to-Left: Delete.
+            - Left-to-Right: Toggle Done/Active.
+            - Right-to-Left: Delete (File + Record).
         - **Filter Chips**: Toggle between task states.
+
+
 
 ### 3. Data Layer
 
 - **`ScreenshotRepository`**
-    - **Role**: Single source of truth for screenshot data.
+    - **Role**: Source of truth for *raw image files*.
     - **Key Mechanism**:
-        - Uses `FileObserver` to watch the internal `screenshots/` directory for externally created files (from the Service).
-        - Exposes a `Flow<List<File>>` to the ViewModel, ensuring the UI auto-updates when a new screenshot is captured by the service.
+        - Uses `FileObserver` to watch `screenshots/` directory.
+        - Exposes a `Flow<List<File>>` reflecting the file system state.
+
+- **`TaskRepository`** & **`AppDatabase`** (Room)
+    - **Role**: Source of truth for *Task metadata*.
+    - **Components**:
+        - **`Task` Entity**: Stores `id`, `imagePath`, `title`, `description`, `dueDate`, `isCompleted`.
+        - **`TaskDao`**: Handles SQL operations (`SELECT`, `INSERT`, `UPDATE`, `DELETE`).
+        - **Repository**: Mediator exposing `Flow<List<Task>>` to ViewModels.
+    - **Deletion Logic**:
+        - **Task Deletion**: Removes DB record. ViewModels typically orchestrate deleting the associated file via `ScreenshotRepository` as well.
 
 - **`GeminiRepository`**
     - **Role**: Handles interaction with Google Gemini AI API.
-    - **Model**: `gemini-1.5-flash-latest` (or similar).
+    - **Model**: `gemini-1.5-flash`.
     - **Input**: Bitmap (Screenshot).
     - **Output**: JSON containing `task_name`, `description`, and `due_date`.
     - **Key Mechanism**:
@@ -116,14 +128,17 @@ The capture logic is split between a Tile interaction and a persistent Accessibi
 - **Hardware vs. Software Bitmaps**
     - The `takeScreenshot()` API returns a `HardwareBuffer`. This must be copied to a software `Bitmap.Config.ARGB_8888` before it can be saved to a file, which is an expensive operation performed on `Dispatchers.IO`.
 
+- **Database-File Synchronization**
+    - **Problem**: Images are files, Tasks are DB records.
+    - **Solution**: The `GalleryViewModel` observes *both* sources. It filters out files that are referenced in the `Task` table. This creates a clear workflow: Capture -> Gallery -> (Convert) -> Tasks. An image is either a "Raw Snap" (Gallery) or a "Task" (Task List), never both.
+
 - **AI Integration Strategy**
-    - Uses **Gemini Flash** model for low latency.
-    - Wraps API calls in `Dispatchers.IO` to prevent UI blocking.
-    - Returns structured JSON to ensure reliable parsing of task details.
+    - **Gemini Flash**: Selected for low latency.
+    - **Structured Output**: Returns JSON to ensure reliable parsing into app domain objects.
+    - **User-in-the-Loop**: AI suggestions are presented in a dialog for review/editing, never auto-applied, ensuring accuracy.
 
 ## Current Limitations / TODOs
 
-1.  **Delay Reliability**: The 450ms delay for shade dismissal is hardcoded and may be flaky on some devices.
-2.  **API Key Security**: API Key is currently hardcoded (needs secure storage mechanism).
-
-
+1.  **Delay Reliability**: The 450ms delay for shade dismissal is hardcoded.
+2.  **API Key Security**: API Key is currently hardcoded.
+3.  **File Consistency**: If a file is deleted externally, the DB record might become orphaned (needs robust sync/cleanup).

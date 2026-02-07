@@ -4,7 +4,7 @@
 **As of:** 2026-02-08
 **App State:** Core Features + AI Integration + Task Management
 
-The application currently supports the **Capture**, **Preview**, **Gallery**, **Detail View**, and **AI Task Extraction** workflows. Advanced file management (bulk delete) is also implemented.
+The application currently supports the **Capture**, **Preview**, **Gallery**, **Unified Detail View**, and **AI Task Extraction** workflows. Advanced file management (bulk delete) and persistent task tracking are also implemented.
 
 ### ✅ Implemented Features
 
@@ -29,21 +29,28 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, **
 
 #### 3. Gallery & Management
 - **UI**: Grid view of all captured screenshots (`GalleryScreen`).
+- **Smart Filtering**: Displays *only* raw snapshots (files that haven't been converted to tasks yet).
 - **Optimization**: Uses image downsampling (300x300 thumbnails) and `Set`-based selection lookup for high performance.
-- **Data Source**: Real-time observation of the app's internal storage `screenshots/` directory using `FileObserver` in `ScreenshotRepository`.
+- **Data Source**: Combines real-time file observation (`ScreenshotRepository`) with database records (`TaskRepository`) to filter the view.
 - **Interaction**:
-    - **View**: Tap a thumbnail to open the Detail View.
+    - **View**: Tap a thumbnail to open the Unified Detail View.
     - **Navigation**: Uses Jetpack Navigation Compose.
 
-#### 4. Detail View
-- **UI**: Full-screen image viewer (`DetailScreen`) with a black background.
+#### 4. Unified Detail View (Snap & Task)
+- **UI**: Full-screen viewer (`TaskDetailScreen`) that adapts context (New Snap vs. Existing Task).
+- **Capabilities**:
+    - **View**: Full-resolution image zooming and panning.
+    - **Task Conversion**: Simply adding a Title or Due Date promotes a generic "Snap" to a tracked "Task".
+    - **Task Demotion**: Clearing the title/date removes the task record but keeps the image aka "Demote to Snap".
+    - **AI Integration**: "Star" button triggers Gemini to analyze the image and suggest task details.
 - **Interaction**:
     - **Swipe Navigation**:
-        - **Left/Right**: Navigate between previous and next images in the gallery.
-        - **Down**: Dismiss/Go Back to gallery.
+        - **Left/Right**: Navigate between images in the current list (Gallery or Task context).
+        - **Down**: Dismiss/Go Back.
         - **Up**: Focus the "Task Name" field for quick editing.
-    - **Delete**: Remove the image permanently via the trash icon.
-    - **Back**: Return to the gallery.
+    - **Delete**: 
+        - For Snaps: Deletes the image file.
+        - For Tasks: Deletes both the task record and the image file.
 
 #### 5. Image Editing & Cropping
 - **UI**: Full-screen editor with zoom and pan capabilities.
@@ -57,13 +64,14 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, **
 
 #### 6. Task Management
 - **UI**: A dedicated "My Tasks" screen listing all saved snaps as tasks.
+- **Persistence**: Powered by **Room Database** for robust local storage.
 - **Organization**:
     - **Filters**: Helper chips to view "All", "Active" (Note), or "Done" tasks.
     - **Visuals**: Tasks display the initial snapshot as a background with a gradient overlay for text readability.
 - **Interaction**:
     - **Swipe Actions**:
-        - **Swipe Right (Start-to-End)**: Mark task as **Done** (Green).
-        - **Swipe Left (End-to-Start)**: **Delete** the task (Red).
+        - **Swipe Right (Start-to-End)**: Mark task as **Done** (Green) or **Active**.
+        - **Swipe Left (End-to-Start)**: **Delete** the task and its image (Red).
     - **Clear Done**: Button to bulk delete all completed tasks and their images.
     - **Tap**: Open specific task details.
     - **Empty State**: Friendly message when no tasks exist.
@@ -88,11 +96,12 @@ The application currently supports the **Capture**, **Preview**, **Gallery**, **
     - **Cleanup**: Automatically exits selection mode after deletion or when cleared.
 
 #### 9. AI Task Extraction (Gemini)
-- **Engine**: Google Gemini 1.5 Flash (`gemini-1.5-flash`).
-- **Trigger**: "Star" icon in Task Detail View.
-- **Capability**: Analyzes the image to automatically extract:
+- **Engine**: Google Gemini 1.5 Flash.
+- **Trigger**: "Star" icon in Unified Detail View.
+- **Capability**: Analyzes the image to automatically suggest:
     - **Task Name**: Short title.
     - **Description**: Brief summary.
     - **Due Date**: Infers specific dates from text (e.g., "tomorrow", "next Friday").
-- **UX**: User reviews suggestions in a dialog before applying them.
-
+- **UX**: 
+    - Shows a loading indicator during analysis.
+    - Presents a dialog with editable suggested fields before applying to the task.
